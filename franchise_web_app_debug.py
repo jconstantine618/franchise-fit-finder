@@ -3,7 +3,7 @@ import pandas as pd
 import re
 
 # ---------- CONFIG ----------
-DATA_FILE = "/Users/johnconstantine/PyCharmMiscProject/ifpg_dataset.xlsx"
+DATA_FILE = "ifpg_dataset.xlsx"
 RESULT_LIMIT = 10
 # ----------------------------
 
