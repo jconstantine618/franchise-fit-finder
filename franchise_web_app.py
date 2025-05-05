@@ -166,15 +166,15 @@ if st.button("Find My Matches 🚀"):
         """, unsafe_allow_html=True)
 
     def money(s):
-        if s is None or pd.isna(s): return "contact us for details"
+        if s is None or pd.isna(s): return "Contact us for details"
         s = re.sub(r"\s+", "", str(s)).replace("$$", "$")
         if not s.startswith("$"): s = "$" + s.lstrip("$")
         return s
 
     for _, row in top_n.iterrows():
-        val = lambda c: row[c] if c in row and pd.notna(row[c]) else "contact us for details"
+        val = lambda c: row[c] if c in row and pd.notna(row[c]) else "Contact us for details"
         brand = row["franchise name"]
-        link  = f"[{brand}]({val('url')})" if val('url') != "contact us for details" else brand
+        link  = f"[{brand}]({val('url')})" if val('url') != "Contact us for details" else brand
 
         st.markdown('<div class="rec">', unsafe_allow_html=True)
         st.markdown(f"### {link}", unsafe_allow_html=True)
