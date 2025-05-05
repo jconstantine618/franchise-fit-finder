@@ -4,8 +4,8 @@ import re
 from pathlib import Path
 
 # ---------- CONFIG ----------
-DATA_FILE   = "ifpg_dataset.xlsx"
-MAP_FILE    = "industry to business type.xlsx"   # mapping sheet: business_type | industry
+DATA_FILE   = "ifpg_dataset.xlsx"              # IFPG master list
+MAP_FILE    = "industry to business type.xlsx" # mapping sheet: business_type | industry
 RESULT_LIMIT = 10
 # ----------------------------
 
@@ -27,13 +27,11 @@ if not Path(MAP_FILE).exists():
 
 map_df = pd.read_excel(MAP_FILE)
 map_df.columns = map_df.columns.str.strip().str.lower()
-
 if not {"business_type", "industry"}.issubset(set(map_df.columns)):
     st.error("Mapping sheet must have columns 'business_type' and 'industry'.")
     st.stop()
 
-biz_map = (map_df.groupby("business_type")["industry"]
-                    .apply(list).to_dict())
+biz_map     = map_df.groupby("business_type")["industry"].apply(list).to_dict()
 biz_options = sorted(biz_map.keys())
 # ------------------------------------
 
@@ -44,16 +42,16 @@ st.write("Answer the questions below to get your personalized franchise short‑
 # --------------------------------
 
 # ---------- OPTIONAL CONTACT INFO ----------
-name  = st.text_input("Your Name (optional)")
-email = st.text_input("Your Email (optional)")
-phone = st.text_input("Your Phone (optional)")
+st.text_input("Your Name (optional)")
+st.text_input("Your Email (optional)")
+st.text_input("Your Phone (optional)")
 # ------------------------------------------
 
-# ---------- BUSINESS FOCUS (NEW) ----------
+# ---------- BUSINESS‑FOCUS QUESTION ----------
 biz_focus = st.multiselect(
     "Type of Business / Business Focus you prefer  *(pick up to 3)*",
     biz_options,
-    max_selections=3
+    max_selections=3,
 )
 # ------------------------------------------
 
@@ -75,19 +73,19 @@ industry_tags = sorted({t.strip() for cell in df["industry"].dropna()
                         for t in str(cell).split(",")})
 industry_interests = st.multiselect(
     "Which industries are you most interested in? (optional)",
-    industry_tags
+    industry_tags,
 )
 
 customer_type = st.selectbox(
     "Who would you rather sell to?",
-    ["Please select", "Businesses (B2B)", "Consumers (B2C)", "Both"]
+    ["Please select", "Businesses (B2B)", "Consumers (B2C)", "Both"],
 )
 # ------------------------------------------
 
-# ---------- BUTTON ----------
+# ---------- ACTION BUTTON ----------
 if st.button("Find My Matches 🚀"):
 
-    # validation
+    # --- basic validation ---
     if not biz_focus:
         st.warning("Please pick at least one Business / Business‑Focus.")
         st.stop()
@@ -96,22 +94,33 @@ if st.button("Find My Matches 🚀"):
         st.warning("Please complete all dropdowns.")
         st.stop()
 
-    # -------- FILTER 1: BUSINESS FOCUS --------
-    def row_matches_focus(industry_cell: str) -> bool:
+    # ==========================================================
+    #  BUSINESS‑FOCUS FILTER (strict AND + smart fallback)
+    # ==========================================================
+    def count_focus_matches(industry_cell: str) -> int:
+        """Return how many selected biz‑focus categories this row covers."""
         inds = [i.strip().lower() for i in str(industry_cell).split(",")]
+        score = 0
         for bf in biz_focus:
-            required_inds = [x.lower() for x in biz_map[bf]]
-            if not any(req in ind for req in required_inds for ind in inds):
-                return False
-        return True
+            mapped = [x.lower() for x in biz_map[bf]]
+            if any(m in ind for m in mapped for ind in inds):
+                score += 1
+        return score
 
-    df_f = df[df["industry"].apply(row_matches_focus)]
+    # strict AND
+    df_f = df[df["industry"].apply(
+        lambda cell: count_focus_matches(cell) == len(biz_focus)
+    )]
 
+    # fallback to ≥1 match, ranked by match_count
     if df_f.empty:
-        st.error("No franchises matched the selected Business‑Focus categories.")
-        st.stop()
+        st.info("No brand covered *all* selected Business‑Focus categories. "
+                "Showing best partial matches instead.")
+        df_f = df[df["industry"].apply(lambda x: count_focus_matches(x) > 0)].copy()
+        df_f["match_score"] = df_f["industry"].apply(count_focus_matches)
+    # ==========================================================
 
-    # -------- FILTER 2: FINANCIAL & OTHER --------
+    # ---------- FINANCIAL & OTHER FILTERS ----------
     cap_map = {"Under $50k": 50_000, "$50k-$99k": 99_000,
                "$100k-$249k": 249_000, "$250k+": 1_000_000}
     cap_limit = cap_map[liquid_capital] * (2 if finance else 1)
@@ -128,7 +137,6 @@ if st.button("Find My Matches 🚀"):
     elif hands_on_time == "<5 hrs/week (passive)":
         df_f = df_f[df_f["passive franchise"] == "Yes"]
 
-    # optional extra industry filter
     if industry_interests:
         df_f = df_f[df_f["industry"].apply(
             lambda x: any(tag in str(x) for tag in industry_interests))
@@ -136,39 +144,40 @@ if st.button("Find My Matches 🚀"):
 
     if customer_type == "Businesses (B2B)" and "b2b" in df_f.columns:
         df_f = df_f[df_f["b2b"].astype(str).str.lower() == "yes"]
-
     elif customer_type == "Consumers (B2C)" and "b2c" in df_f.columns:
         df_f = df_f[df_f["b2c"].astype(str).str.lower() == "yes"]
 
-    df_f = df_f.sort_values("industry_ranking")
+    # ---------- FINAL SORT ----------
+    if "match_score" in df_f.columns:
+        df_f = df_f.sort_values(["match_score", "industry_ranking"],
+                                ascending=[False, True])
+    else:
+        df_f = df_f.sort_values("industry_ranking")
 
-    # fallback: keep business‑focus but ignore finance
+    # Fallback still empty?
     if df_f.empty:
-        st.info("No brand met all filters. Showing top‑ranked brands that fit your "
-                "Business‑Focus categories instead.")
-        df_f = (df[df["industry"].apply(row_matches_focus)]
-                .sort_values("industry_ranking"))
-
-    top_n = df_f.head(RESULT_LIMIT)
-
-    if top_n.empty:
         st.error("No franchises to display — please broaden your answers.")
         st.stop()
+
+    # Limit results
+    top_n = df_f.head(RESULT_LIMIT)
 
     # ---------- PRESENTATION ----------
     st.subheader(f"✨ Your Top {len(top_n)} Franchise Recommendations ✨")
 
     st.markdown("""
         <style>
-          .rec {font-family: Helvetica, sans-serif; font-size: 16px; line-height: 1.45em;}
-          .rec h3 {font-size: 24px; margin-bottom: 4px;}
+         .rec {font-family: Helvetica, sans-serif; font-size: 16px; line-height: 1.45em;}
+         .rec h3 {font-size: 24px; margin-bottom: 4px;}
         </style>
         """, unsafe_allow_html=True)
 
-    def money(s):
-        if s is None or pd.isna(s): return "Contact us for details"
+    def money(s: str) -> str:
+        if s is None or pd.isna(s):
+            return "contact us for details"
         s = re.sub(r"\s+", "", str(s)).replace("$$", "$")
-        if not s.startswith("$"): s = "$" + s.lstrip("$")
+        if not s.startswith("$"):
+            s = "$" + s.lstrip("$")
         return s
 
     for _, row in top_n.iterrows():
