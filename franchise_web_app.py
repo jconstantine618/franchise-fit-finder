@@ -18,6 +18,15 @@ except FileNotFoundError:
 
 df.columns = df.columns.str.strip().str.lower()
 df.replace(r"_x000D_", " ", regex=True, inplace=True)
+
+# helper → find the first column that starts with "franchise fee"
+def get_fee_col(cols) -> str | None:
+    for c in cols:
+        if str(c).startswith("franchise fee"):
+            return c
+    return None
+
+fee_col = get_fee_col(df.columns)     # may be None if not present
 # ------------------------------------
 
 # ---------- LOAD BUSINESS‑FOCUS MAP ----------
@@ -32,7 +41,6 @@ if not {"business_type", "industry"}.issubset(set(map_df.columns)):
     st.error("Mapping sheet must have columns 'business_type' and 'industry'.")
     st.stop()
 
-# --- keep only the approved five categories ---
 allowed_focus = [
     "professional services",
     "retail",
@@ -42,7 +50,6 @@ allowed_focus = [
 ]
 map_df["business_type"] = map_df["business_type"].str.strip().str.lower()
 map_df = map_df[map_df["business_type"].isin(allowed_focus)]
-# ----------------------------------------------
 
 biz_map     = map_df.groupby("business_type")["industry"].apply(list).to_dict()
 biz_options = sorted(biz_map.keys())
@@ -98,11 +105,9 @@ customer_type = st.selectbox(
 # ---------- ACTION BUTTON ----------
 if st.button("Find My Matches 🚀"):
 
-    # --- basic validation ---
     if not biz_focus:
         st.warning("Please pick at least one Business / Business‑Focus.")
         st.stop()
-
     if "Please select" in [liquid_capital, hands_on_time, customer_type]:
         st.warning("Please complete all dropdowns.")
         st.stop()
@@ -111,7 +116,6 @@ if st.button("Find My Matches 🚀"):
     #  BUSINESS‑FOCUS FILTER  (OR logic + score)
     # ==========================================================
     def count_focus_matches(industry_cell: str) -> int:
-        """Return how many selected focus categories this row covers."""
         inds = [i.strip().lower() for i in str(industry_cell).split(",")]
         score = 0
         for bf in biz_focus:
@@ -120,14 +124,11 @@ if st.button("Find My Matches 🚀"):
                 score += 1
         return score
 
-    # keep rows that match at least one chosen focus
     df_f = df[df["industry"].apply(lambda x: count_focus_matches(x) > 0)].copy()
-
     if df_f.empty:
         st.error("No franchises matched any of the selected Business‑Focus categories.")
         st.stop()
 
-    # add score column and sort later
     df_f["match_score"] = df_f["industry"].apply(count_focus_matches)
     # ==========================================================
 
@@ -191,13 +192,17 @@ if st.button("Find My Matches 🚀"):
         brand = row["franchise name"]
         link  = f"[{brand}]({val('url')})" if val('url') != "contact us for details" else brand
 
+        startup_cost  = money(row["cash required"])
+        franchise_fee = money(val(fee_col)) if fee_col else "contact us for details"
+        veteran_disc  = val("veteran discount")
+
         st.markdown('<div class="rec">', unsafe_allow_html=True)
         st.markdown(f"### {link}", unsafe_allow_html=True)
         st.markdown(f"**Industry:** {val('industry')}")
         st.markdown(f"**Description:** {val('business summary')}")
-        st.markdown(f"**Startup Cost:** {money(row['cash required'])}")
-        st.markdown(f"**Franchise Fee:** {money(val('franchise fee - one unit'))}")
-        st.markdown(f"**Veteran Discount:** {val('veteran discount')}")
+        st.markdown(f"**Startup Cost:** {startup_cost}")
+        st.markdown(f"**Franchise Fee:** {franchise_fee}")
+        st.markdown(f"**Veteran Discount:** {veteran_disc}")
         st.markdown(f"**Industry Ranking:** {val('industry_ranking')}")
         st.markdown(f"**Number of Units Open:** {val('number of units open')}")
         st.markdown(f"**Support:** {val('support')}")
