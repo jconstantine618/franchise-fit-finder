@@ -25,9 +25,9 @@ st.write("Answer the questions below to get your personalized franchise short‑
 # --------------------------------
 
 # ---------- NAME, EMAIL, PHONE ----------
-st.text_input("Your Name (required)", key="user_name")
-st.text_input("Your Email (required)", key="user_email")
-st.text_input("Your Phone (optional)", key="user_phone")
+name = st.text_input("Your Name (optional)")
+email = st.text_input("Your Email (optional)")
+phone = st.text_input("Your Phone (optional)")
 # ----------------------------------------
 
 # ---------- QUESTIONS ----------
@@ -57,17 +57,6 @@ customer_type = st.selectbox(
 # ----------------------------------
 
 if st.button("Find My Matches 🚀"):
-    # Read values from session state
-    name = st.session_state.get("user_name", "").strip()
-    email = st.session_state.get("user_email", "").strip()
-
-    if not name or not email:
-        st.warning("Please enter your name and email.")
-        st.stop()
-
-    if not re.match(r'^\S+@\S+\.\S+$', email):
-        st.warning("Please enter a valid email address.")
-        st.stop()
 
     if (
         "Please select" in [liquid_capital, hands_on_time, work_setting, customer_type]
@@ -166,3 +155,4 @@ if st.button("Find My Matches 🚀"):
         st.markdown(f"**Number of Units Open:** {val('number of units open')}")
         st.markdown(f"**Support:** {val('support')}")
         st.markdown("</div><hr>", unsafe_allow_html=True)
+
