@@ -25,9 +25,9 @@ st.write("Answer the questions below to get your personalized franchise short‑
 # --------------------------------
 
 # ---------- NAME, EMAIL, PHONE ----------
-name = st.text_input("Your Name (optional)")
-email = st.text_input("Your Email (optional)")
-phone = st.text_input("Your Phone (optional)")
+name = st.text_input("Your Name")
+email = st.text_input("Your Email")
+phone = st.text_input("Your Phone")
 # ----------------------------------------
 
 # ---------- QUESTIONS ----------
