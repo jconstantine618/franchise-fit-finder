@@ -91,7 +91,7 @@ industry_interests = st.multiselect(
 
 customer_type = st.selectbox(
     "Who would you rather sell to?",
-    ["Please select", "Businesses (B2B)", "Consumers (B2C)", "Both"],
+    ["Please select", "Businesses (B2B)", "Consumers (B2C)", "Either or Both"],
 )
 # ------------------------------------------
 
