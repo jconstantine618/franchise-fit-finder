@@ -135,10 +135,10 @@ if st.button("Find My Matches 🚀"):
         ]
 
     if customer_type == "Businesses (B2B)" and "b2b" in df_f.columns:
-    df_f = df_f[df_f["b2b"].astype(str).str.lower() == "yes"]
+        df_f = df_f[df_f["b2b"].astype(str).str.lower() == "yes"]
 
     elif customer_type == "Consumers (B2C)" and "b2c" in df_f.columns:
-    df_f = df_f[df_f["b2c"].astype(str).str.lower() == "yes"]
+        df_f = df_f[df_f["b2c"].astype(str).str.lower() == "yes"]
 
     df_f = df_f.sort_values("industry_ranking")
 
