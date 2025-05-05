@@ -24,6 +24,11 @@ st.title("Franchise Fit Finder 🌟")
 st.write("Answer the questions below to get your personalized franchise short‑list.")
 # --------------------------------
 
+# ---------- USER INFO ----------
+name = st.text_input("Your Name (required)")
+email = st.text_input("Your Email (required)")
+phone = st.text_input("Your Phone (optional)")
+
 # ---------- QUESTIONS ----------
 liquid_capital = st.selectbox(
     "Liquid capital available today?",
@@ -51,6 +56,10 @@ customer_type = st.selectbox(
 # ----------------------------------
 
 if st.button("Find My Matches 🚀"):
+
+    if not name.strip() or not email.strip():
+        st.warning("Please enter your name and email.")
+        st.stop()
 
     if (
         "Please select" in [liquid_capital, hands_on_time, work_setting, customer_type]
@@ -122,7 +131,6 @@ if st.button("Find My Matches 🚀"):
     def clean_money(s: str) -> str:
         if s is None or pd.isna(s):
             return "contact us for details"
-        # remove any spaces, ensure single $
         s = re.sub(r"\s+", "", str(s))
         s = s.replace("$$", "$")
         if not s.startswith("$"):
@@ -134,17 +142,18 @@ if st.button("Find My Matches 🚀"):
             return row[col] if col in row and pd.notna(row[col]) else "contact us for details"
 
         startup_cost   = clean_money(row["cash required"]) if "cash required" in row else "contact us for details"
-        franchise_fee  = clean_money(val("franchise fee - one unit"))
+        franchise_fee  = clean_money(row["franchise fee - one unit"]) if pd.notna(row["franchise fee - one unit"]) else None
         veteran_disc   = val("veteran discount")
         brand          = row["franchise name"]
-        link           = f"[{brand}]({val('url')})" if val("url") != "contact us for details" else brand
+        link           = f"[{brand}]({val('url')})" if val('url') != "contact us for details" else brand
 
         st.markdown('<div class="rec">', unsafe_allow_html=True)
         st.markdown(f"### {link}", unsafe_allow_html=True)
         st.markdown(f"**Industry:** {val('industry')}")
         st.markdown(f"**Description:** {val('business summary')}")
         st.markdown(f"**Startup Cost:** {startup_cost}")
-        st.markdown(f"**Franchise Fee:** {franchise_fee}")
+        if franchise_fee:  # only show if has value
+            st.markdown(f"**Franchise Fee:** {franchise_fee}")
         st.markdown(f"**Veteran Discount:** {veteran_disc}")
         st.markdown(f"**Industry Ranking:** {val('industry_ranking')}")
         st.markdown(f"**Number of Units Open:** {val('number of units open')}")
