@@ -56,11 +56,14 @@ customer_type = st.selectbox(
 # ----------------------------------
 
 if st.button("Find My Matches 🚀"):
-
     if not name.strip() or not email.strip():
         st.warning("Please enter your name and email.")
         st.stop()
-
+    if not re.match(email_pattern, email.strip()):
+        st.warning("Please enter a valid email address.")
+        st.stop()
+    import re
+    email_pattern = r'^\S+@\S+\.\S+$'
     if (
         "Please select" in [liquid_capital, hands_on_time, work_setting, customer_type]
         or not industry_interests
