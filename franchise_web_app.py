@@ -20,7 +20,7 @@ df.replace(r"_x000D_", " ", regex=True, inplace=True)
 
 # ---------- PAGE TITLE ----------
 st.set_page_config(page_title="Franchise Fit Finder")
-st.title("Franchise Fit Finder 🌟")
+st.title("Franchise Fit Finder")
 st.write("Answer the questions below to get your personalized franchise short‑list.")
 # --------------------------------
 
@@ -58,7 +58,7 @@ customer_type = st.selectbox(
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-if st.button("Find My Matches 🚀"):
+if st.button("Find My Matches"):
     st.session_state.button_clicked = True
 
 if st.session_state.button_clicked:
