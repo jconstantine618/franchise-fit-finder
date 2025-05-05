@@ -27,9 +27,22 @@ if not Path(MAP_FILE).exists():
 
 map_df = pd.read_excel(MAP_FILE)
 map_df.columns = map_df.columns.str.strip().str.lower()
+
 if not {"business_type", "industry"}.issubset(set(map_df.columns)):
     st.error("Mapping sheet must have columns 'business_type' and 'industry'.")
     st.stop()
+
+# --- keep only the approved five categories ---
+allowed_focus = [
+    "professional services",
+    "retail",
+    "green & eco friendly",
+    "health",
+    "home and family",
+]
+map_df["business_type"] = map_df["business_type"].str.strip().str.lower()
+map_df = map_df[map_df["business_type"].isin(allowed_focus)]
+# ----------------------------------------------
 
 biz_map     = map_df.groupby("business_type")["industry"].apply(list).to_dict()
 biz_options = sorted(biz_map.keys())
@@ -49,7 +62,7 @@ st.text_input("Your Phone (optional)")
 
 # ---------- BUSINESS‑FOCUS QUESTION ----------
 biz_focus = st.multiselect(
-    "Type of Business / Business Focus you prefer  *(pick up to 3)*",
+    "Type of Business / Business Focus you prefer  *(pick up to 3)*",
     biz_options,
     max_selections=3,
 )
@@ -95,10 +108,10 @@ if st.button("Find My Matches 🚀"):
         st.stop()
 
     # ==========================================================
-    #  BUSINESS‑FOCUS FILTER (strict AND + smart fallback)
+    #  BUSINESS‑FOCUS FILTER  (OR logic + score)
     # ==========================================================
     def count_focus_matches(industry_cell: str) -> int:
-        """Return how many selected biz‑focus categories this row covers."""
+        """Return how many selected focus categories this row covers."""
         inds = [i.strip().lower() for i in str(industry_cell).split(",")]
         score = 0
         for bf in biz_focus:
@@ -107,17 +120,15 @@ if st.button("Find My Matches 🚀"):
                 score += 1
         return score
 
-    # strict AND
-    df_f = df[df["industry"].apply(
-        lambda cell: count_focus_matches(cell) == len(biz_focus)
-    )]
+    # keep rows that match at least one chosen focus
+    df_f = df[df["industry"].apply(lambda x: count_focus_matches(x) > 0)].copy()
 
-    # fallback to ≥1 match, ranked by match_count
     if df_f.empty:
-        st.info("No brand covered *all* selected Business‑Focus categories. "
-                "Showing best partial matches instead.")
-        df_f = df[df["industry"].apply(lambda x: count_focus_matches(x) > 0)].copy()
-        df_f["match_score"] = df_f["industry"].apply(count_focus_matches)
+        st.error("No franchises matched any of the selected Business‑Focus categories.")
+        st.stop()
+
+    # add score column and sort later
+    df_f["match_score"] = df_f["industry"].apply(count_focus_matches)
     # ==========================================================
 
     # ---------- FINANCIAL & OTHER FILTERS ----------
@@ -148,18 +159,13 @@ if st.button("Find My Matches 🚀"):
         df_f = df_f[df_f["b2c"].astype(str).str.lower() == "yes"]
 
     # ---------- FINAL SORT ----------
-    if "match_score" in df_f.columns:
-        df_f = df_f.sort_values(["match_score", "industry_ranking"],
-                                ascending=[False, True])
-    else:
-        df_f = df_f.sort_values("industry_ranking")
+    df_f = df_f.sort_values(["match_score", "industry_ranking"],
+                            ascending=[False, True])
 
-    # Fallback still empty?
     if df_f.empty:
         st.error("No franchises to display — please broaden your answers.")
         st.stop()
 
-    # Limit results
     top_n = df_f.head(RESULT_LIMIT)
 
     # ---------- PRESENTATION ----------
@@ -181,9 +187,9 @@ if st.button("Find My Matches 🚀"):
         return s
 
     for _, row in top_n.iterrows():
-        val = lambda c: row[c] if c in row and pd.notna(row[c]) else "Contact us for details"
+        val = lambda c: row[c] if c in row and pd.notna(row[c]) else "contact us for details"
         brand = row["franchise name"]
-        link  = f"[{brand}]({val('url')})" if val('url') != "Contact us for details" else brand
+        link  = f"[{brand}]({val('url')})" if val('url') != "contact us for details" else brand
 
         st.markdown('<div class="rec">', unsafe_allow_html=True)
         st.markdown(f"### {link}", unsafe_allow_html=True)
