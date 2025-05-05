@@ -20,7 +20,7 @@ df.replace(r"_x000D_", " ", regex=True, inplace=True)
 
 # ---------- PAGE TITLE ----------
 st.set_page_config(page_title="Franchise Fit Finder")
-st.title("Franchise Fit Finder")
+st.title("Franchise Fit Finder!!")
 st.write("Answer the questions below to get your personalized franchise short‑list.")
 # --------------------------------
 
