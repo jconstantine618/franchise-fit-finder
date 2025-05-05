@@ -20,13 +20,15 @@ df.replace(r"_x000D_", " ", regex=True, inplace=True)
 
 # ---------- PAGE TITLE ----------
 st.set_page_config(page_title="Franchise Fit Finder")
-st.title("Franchise Fit Finder!!")
+st.title("Franchise Fit Finder 🌟")
 st.write("Answer the questions below to get your personalized franchise short‑list.")
 # --------------------------------
 
-# ---------- USER INFO ----------
-name = st.text_input("Your Name")
-email = st.text_input("Your Email")
+# ---------- NAME, EMAIL, PHONE ----------
+st.text_input("Your Name (required)", key="user_name")
+st.text_input("Your Email (required)", key="user_email")
+st.text_input("Your Phone (optional)", key="user_phone")
+# ----------------------------------------
 
 # ---------- QUESTIONS ----------
 liquid_capital = st.selectbox(
@@ -54,21 +56,24 @@ customer_type = st.selectbox(
 )
 # ----------------------------------
 
-# ---------- SESSION STATE ----------
-if 'button_clicked' not in st.session_state:
-    st.session_state.button_clicked = False
+if st.button("Find My Matches 🚀"):
+    # Read values from session state
+    name = st.session_state.get("user_name", "").strip()
+    email = st.session_state.get("user_email", "").strip()
 
-if st.button("Find My Matches"):
-    st.session_state.button_clicked = True
-
-if st.session_state.button_clicked:
-    if not name.strip() or not email.strip():
+    if not name or not email:
         st.warning("Please enter your name and email.")
-        st.session_state.button_clicked = False
         st.stop()
-    if not re.match(r'^\S+@\S+\.\S+$', email.strip()):
+
+    if not re.match(r'^\S+@\S+\.\S+$', email):
         st.warning("Please enter a valid email address.")
-        st.session_state.button_clicked = False
+        st.stop()
+
+    if (
+        "Please select" in [liquid_capital, hands_on_time, work_setting, customer_type]
+        or not industry_interests
+    ):
+        st.warning("Please complete every field and choose at least one industry.")
         st.stop()
 
     # ---------- FILTER PIPELINE ----------
@@ -144,11 +149,11 @@ if st.session_state.button_clicked:
         def val(col):
             return row[col] if col in row and pd.notna(row[col]) else "contact us for details"
 
-        startup_cost   = clean_money(row["cash required"]) if "cash required" in row else "contact us for details"
-        franchise_fee  = clean_money(val("franchise fee - one unit"))
-        veteran_disc   = val("veteran discount")
-        brand          = row["franchise name"]
-        link           = f"[{brand}]({val('url')})" if val('url') != "contact us for details" else brand
+        startup_cost = clean_money(row["cash required"]) if "cash required" in row else "contact us for details"
+        franchise_fee = clean_money(val("franchise fee - one unit"))
+        veteran_disc = val("veteran discount")
+        brand = row["franchise name"]
+        link = f"[{brand}]({val('url')})" if val("url") != "contact us for details" else brand
 
         st.markdown('<div class="rec">', unsafe_allow_html=True)
         st.markdown(f"### {link}", unsafe_allow_html=True)
