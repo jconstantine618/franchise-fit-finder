@@ -62,7 +62,7 @@ st.text_input("Your Phone (optional)")
 
 # ---------- BUSINESS‑FOCUS QUESTION ----------
 biz_focus = st.multiselect(
-    "Type of Business / Business Focus you prefer  *(pick up to 3)*",
+    "Choose your preferred Focus *(pick up to 3)*",
     biz_options,
     max_selections=3,
 )
