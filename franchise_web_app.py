@@ -134,10 +134,11 @@ if st.button("Find My Matches 🚀"):
             lambda x: any(tag in str(x) for tag in industry_interests))
         ]
 
-    if customer_type == "Businesses (B2B)":
-        df_f = df_f[df_f["b2b"] == "Yes"]
-    elif customer_type == "Consumers (B2C)":
-        df_f = df_f[df_f["b2c"] == "Yes"]
+    if customer_type == "Businesses (B2B)" and "b2b" in df_f.columns:
+    df_f = df_f[df_f["b2b"].astype(str).str.lower() == "yes"]
+
+    elif customer_type == "Consumers (B2C)" and "b2c" in df_f.columns:
+    df_f = df_f[df_f["b2c"].astype(str).str.lower() == "yes"]
 
     df_f = df_f.sort_values("industry_ranking")
 
