@@ -179,21 +179,19 @@ if st.button("Find My Matches 🚀"):
         </style>
         """, unsafe_allow_html=True)
 
-    # ---- NEW money() helper that hides zeros ----
+    # ---- updated money() helper ----
     def money(s) -> str:
-        """Format a money-like cell; return fallback if blank or zero."""
+        """Return cleaned $ string or fallback if blank/zero."""
         if s is None or pd.isna(s):
             return "contact us for details"
-        # strip non-numeric to test for zero
         num = re.sub(r"[^\d.]", "", str(s))
         if num == "" or float(num) == 0:
             return "contact us for details"
-        # otherwise format nicely with a leading $
         s = re.sub(r"\s+", "", str(s)).replace("$$", "$")
         if not s.startswith("$"):
             s = "$" + s.lstrip("$")
         return s
-    # ---------------------------------------------
+    # ---------------------------------
 
     for _, row in top_n.iterrows():
         val = lambda c: row[c] if c in row and pd.notna(row[c]) else "contact us for details"
@@ -215,4 +213,3 @@ if st.button("Find My Matches 🚀"):
         st.markdown(f"**Number of Units Open:** {val('number of units open')}")
         st.markdown(f"**Support:** {val('support')}")
         st.markdown("</div><hr>", unsafe_allow_html=True)
-
